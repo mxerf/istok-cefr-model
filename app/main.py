@@ -1,13 +1,18 @@
+import torch
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+from transformers import pipeline
 
 from app.logger import logger
-from app.sqlite_cache import check_cache, init_db, save_pending  # 🔥
-from app.worker import classify_text_task
 
 app = FastAPI()
 
-init_db()  # 👈 один раз при старте приложения
+# Загружаем модель один раз при старте
+logger.info("Loading model...")
+classifier = pipeline(
+    "text-classification", model="AbdulSami/bert-base-cased-cefr", device=-1
+)
+logger.info("Model loaded")
 
 
 class TextRequest(BaseModel):
@@ -15,32 +20,16 @@ class TextRequest(BaseModel):
 
 
 @app.post("/classify")
-async def classify(req: TextRequest):
+async def classify_text(req: TextRequest):
     word_count = len(req.text.split())
     if word_count > 500:
-        raise HTTPException(
-            status_code=400, detail=f"Too long: {word_count} words (max 500)"
-        )
+        raise HTTPException(status_code=400, detail="Максимум 500 слов")
 
-    cached = check_cache(req.text)
-    if cached:
-        logger.info("Cache hit — skipping task creation")
-        return {"status": "done", "result": cached, "cached": True}
-
-    save_pending(req.text)
-    task = classify_text_task.delay(req.text)
-    logger.info(f"Task {task.id} queued")
-    return {"task_id": task.id, "cached": False}
-
-
-@app.get("/result/{task_id}")
-def get_result(task_id: str):
-    from app.worker import celery_app
-
-    task = celery_app.AsyncResult(task_id)
-    if task.state == "PENDING":
-        return {"status": "pending"}
-    elif task.state == "SUCCESS":
-        return {"status": "done", "result": task.result}
-    else:
-        return {"status": task.state.lower(), "error": str(task.info)}
+    try:
+        logger.info("Running inference...")
+        with torch.no_grad():
+            result = classifier(req.text)
+        return {"result": result[0]["label"]}
+    except Exception as e:
+        logger.error(f"Inference error: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка при обработке текста")

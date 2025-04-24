@@ -5,22 +5,3 @@ services:
     ports:
       - "8000:8000"
     restart: unless-stopped
-    depends_on:
-      - redis
-    volumes:
-      - ./data:/data
-
-  worker:
-    build: .
-    command: celery -A app.worker.celery_app worker --loglevel=info
-    restart: unless-stopped
-    depends_on:
-      - redis
-    volumes:
-      - ./data:/data
-
-  redis:
-    image: redis:7.2
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
