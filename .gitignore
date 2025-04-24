@@ -1,3 +1,5 @@
 .qodo
 __pycache__
 venv
+data
+cache.sqlite3

@@ -3,10 +3,11 @@ from transformers import pipeline
 
 from app.logger import logger
 
-# Загружаем один раз
+logger.info("Loading model...")
 classifier = pipeline(
     "text-classification", model="AbdulSami/bert-base-cased-cefr", device=-1
 )
+logger.info("Model loaded")
 
 
 def classify_text_sync(text: str):
