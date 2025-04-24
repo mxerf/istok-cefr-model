@@ -1,0 +1,8 @@
+fastapi==0.110.0
+uvicorn[standard]==0.29.0
+transformers==4.40.1
+torch==2.2.2
+celery==5.3.6
+redis==5.0.3
+loguru==0.7.2
+numpy<2
