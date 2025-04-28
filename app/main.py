@@ -1,11 +1,22 @@
 import torch
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from transformers import pipeline
 
 from app.logger import logger
 
 app = FastAPI()
+
+origins = ["http://localhost:3000", "http://127.0.0.1:3000"]  # если вдруг напрямую
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # Разрешенные источники
+    allow_credentials=True,
+    allow_methods=["*"],  # Можно сузить до ["POST"]
+    allow_headers=["*"],  # Можно ограничить нужными
+)
 
 # Загружаем модель один раз при старте
 logger.info("Loading model...")
